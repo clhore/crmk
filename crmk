@@ -1,0 +1,196 @@
+#!/bin/bash
+
+# Author: Adrian Lujan Muñoz ( aka: clhore)
+
+# Colours
+readonly green="\e[0;32m\033[1m"
+readonly end="\033[0m\e[0m"
+readonly red="\e[0;31m\033[1m"
+readonly blue="\e[0;34m\033[1m"
+readonly yellow="\e[0;33m\033[1m"
+readonly purple="\e[0;35m\033[1m"
+readonly turquoise="\e[0;36m\033[1m"
+readonly gray="\e[0;37m\033[1m"
+
+# Commands path
+export FIND="/usr/bin/find"
+export SCRUB="/usr/bin/scrub"
+export SHRED="/usr/bin/shred"
+export ECHO="/usr/bin/echo"
+export RM="/usr/bin/rm"
+
+trap ctrl_c INT
+
+# Exit function
+function ctrl_c(){
+  $ECHO -e "\n${yellow}[*]${end}${gray}Saliendo${end}"
+  $TPUT cnorm; exit 0
+}
+
+# Help panel
+function help_panel(){
+  $ECHO -e "${yellow}[*] ${end}${gray}USO:${end} ./crmk --rute <directory|file>"
+  $ECHO -e "\n\t${yellow}--rute${end}\t\t-  ${gray}Directory path or file path${end}"
+  $ECHO -e "\t${yellow}-r${end}"
+  $ECHO -e "\n\t${yellow}--overwrites${end}\t-  ${gray}Overwrites N times instead of the default (10)${end}"
+  $ECHO -e "\t${yellow}--nwrites  ${end}"
+  $ECHO -e "\t${yellow}--n  ${end}"
+  $ECHO -e "\n\t${yellow}--pattern${end}\t-  ${gray}Scrub pattern default (dod)${end}"
+  $ECHO -ne "\t${yellow}-p${end}${gray} \t\t   nnsa   |    dod    |    bsi     | gutmann${end}"
+  $ECHO -e "${gray}
+           \t\t schneier | pfitzner7 | pfitzner33 | usarmy
+           \t\t fillzero |  fillff   |   random   | random2
+           \t\t    old   | fastold   | custom=str ${end}"
+  $ECHO -e "\n\t${yellow}--log${end}\t\t-  ${gray}Create log file${end}"
+  $ECHO -e "\t${yellow}-v${end}"
+  $ECHO -e "\n\t${yellow}--verbose${end}\t-  ${gray}[ VERBOSE ]${end}"
+  $ECHO -e "\t${yellow}-v${end}"
+  $ECHO -e ''; exit 0
+}
+
+function msg_log(){
+  case $1 in
+     22)
+       $ECHO -ne "${yellow}[*]${end}${gray} Listando archivos y directorios ${end}"
+       $ECHO -e "List files and directory" >> crmk.log
+     ;;
+
+     24)
+       $ECHO -e "Delete [ $2 ]" >> crmk.log
+     ;;
+
+     26)
+       $ECHO -e "${red}:: El archivo tardara en eliminarse${end}"
+       $ECHO -e "El archivo tardara en eliminarse" >> crmk.log
+     ;;
+  esac
+}
+
+# Error message
+function error_log(){
+  case $1 in
+     22)
+       $ECHO -e "${red}:: Error list files${end}"
+       $ECHO ":: Error list files" >> crmk.log
+     ;;
+
+     44)
+       $ECHO -e "${red}:: Error en el paramentro [--overwrites$|--owrites|-n]${end}"
+       $ECHO ":: Error en el paramentro [--overwrites$|--owrites|-n]]" >> crmk.log
+     ;;
+
+     46)
+       $ECHO -e "${red}:: Error en el paramentro [--pattern|-p]${end}"
+       $ECHO ":: Error en el paramentro [--pattern|-p]" >> crmk.log
+     ;;
+
+     66)
+       $ECHO -e "${red}:: Error scrub${end}"
+       $ECHO ":: Error scrub" >> crmk.log
+     ;;
+
+     88)
+       $ECHO -e "${red}:: Error shred${end}"
+       $ECHO ":: Error shred" >> crmk.log
+     ;;
+  esac
+}
+
+function search_list(){
+  local LIST=(${1}); local ITEM=${2}
+
+  for i in "${LIST[@]}"; do
+    if [ "${i}" == "${ITEM}" ]; then return 0; fi
+  done; return 1
+}
+
+function defauld_value(){
+  if [ -z $N_OVER_WRITES ]; then N_OVER_WRITES=10; fi
+	if [[ ! $N_OVER_WRITES =~ ^[0-9]+$ ]]; then error_log 44; exit 1; fi
+
+  local PATTERN_LIST="nnsa dod bsi gutmann schneier pfitzner7 pfitzner33 usarmy fillzero fillff random random2 old fastold custom"
+  if [ -z $SCRUB_PATTERN ]; then SCRUB_PATTERN="dod"; fi
+  search_list "$PATTERN_LIST" "$SCRUB_PATTERN"; if [ ! $? -eq 0 ]; then error_log 46; exit 1; fi
+}
+
+# If path exist, return 0
+function check_rute(){ if [ ! -r "$1" ]; then return 1; fi; return 0; }
+
+# If type of rute is directory, return 0
+function check_rute_type(){ if [ ! -d "$1" ]; then return 1; fi; return 0; }
+
+function scrub_shred(){
+   local LINE=$1
+   if [[ ! -v VERBOSE ]]; then
+      $SCRUB -p $SCRUB_PATTERN "$LINE" &>/dev/null; if [ ! $? ]; then error_log 66; fi
+      $SHRED -zun $N_OVER_WRITES -v "$LINE" &>/dev/null; if [ ! $? ]; then error_log 88; fi
+      return 0
+   fi; $SCRUB -p dod "$LINE"; if [ ! $? ]; then error_log 66; fi
+   $SHRED -zun $N_OVER_WRITES -v "$LINE"; if [ ! $? ]; then error_log 88; fi
+}
+
+function security_delete(){
+  while IFS= read -r LINE; do
+    $ECHO -e "${yellow}[*]${end}${gray} Eliminado ${end}${blue}$LINE${end}"; msg_log 24 "$LINE"
+    SIZE=$(du -s "$LINE" | awk '{print $1}'); if [ $SIZE -gt 100000 ]; then msg_log 26; fi
+    scrub_shred $LINE
+  done < .tmp_crmk; $RM .tmp_crmk &>/dev/null
+}
+
+function main(){
+  if [ "$(check_rute_type $INPUT_RUTE; $ECHO $?)" == "0" ]; then
+    msg_log 22; $FIND $INPUT_RUTE -type f -exec ls -a {} \; > .tmp_crmk
+    if [ ! $? ]; then $ECHO -e "${red}(x)${end}"; error_log 22; exit 1; fi;
+    $ECHO -e "${green}(v)${end}"
+  fi
+
+  if [ "$(check_rute_type $INPUT_RUTE; $ECHO $?)" == "1" ]; then
+    $ECHO "$INPUT_RUTE" > .tmp_crmk
+  fi; security_delete; $RM -rf $INPUT_RUTE &>/dev/null
+}
+
+if [ $UID -eq 0 ]; then
+  declare -A ARRAY=([-h]="-h" [--help]="--help" [--h]="--h" [-help]="-help")
+  for i in "${ARRAY[@]}"; do
+    if [ $1 ]; then env test ${ARRAY[$1]+_} 2>/dev/null && help_panel; fi
+  done
+
+  for i in "$@"; do if [[ "$i" == "--verbose" || "$i" == "-v" ]]; then declare VERBOSE=0; fi; done
+  for i in "$@"; do if [[ "$i" == "--log" || "$i" == "-l" ]]; then declare LOG_FILE=0; fi; done
+
+  declare -i INDEX=1
+  declare -A ARGUMENTS=(); declare -A VARIABLES=()
+
+  VARIABLES["--rute"]="INPUT_RUTE"
+  VARIABLES["--overwrites"]="N_OVER_WRITES"
+  VARIABLES["--owrites"]="N_OVER_WRITES"
+  VARIABLES["--pattern"]="SCRUB_PATTERN"
+
+  VARIABLES["-r"]="INPUT_RUTE"
+  VARIABLES["-n"]="N_OVER_WRITES"
+  VARIABLES["-p"]="SCRUB_PATTERN"
+
+  for i in "$@"; do
+    ARGUMENTS[$INDEX]=$i;
+    PREV_INDEX="$(expr $INDEX - 1)";
+
+    if [[ $i == *"="* ]]; then ARGUMENT_LABEL=${i%=*}
+    else ARGUMENT_LABEL=${ARGUMENTS[$PREV_INDEX]}; fi
+
+    if [[ -n $ARGUMENT_LABEL ]]; then
+      if [[ -n ${VARIABLES[$ARGUMENT_LABEL]} ]]; then
+        if [[ $i == *"="* ]]; then
+          declare ${VARIABLES[$ARGUMENT_LABEL]}=${i#$ARGUMENT_LABEL=}
+        else
+          declare ${VARIABLES[$ARGUMENT_LABEL]}=${ARGUMENTS[$INDEX]}
+        fi
+      fi
+    fi; INDEX=INDEX+1;
+  done; defauld_value
+
+  # If input rute exit, exec main function
+  if [ $(check_rute "$INPUT_RUTE" &>/dev/null; echo $?) -eq 0 ]; then main; fi
+  if [ ! -v LOG_FILE ]; then $RM crmk.log &>/dev/null; fi; exit 0
+else
+  $ECHO -e "${red}Ejecute el script como root${end}"
+fi
