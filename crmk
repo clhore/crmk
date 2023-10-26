@@ -1,5 +1,6 @@
 #!/usr/bin/bash
 
+# encode: utf-8
 # Author: Adrian Lujan Muñoz ( aka: clhore)
 
 # Colours
@@ -28,197 +29,148 @@ export TR="/usr/bin/tr"
 trap ctrl_c INT
 
 # Exit function
-function ctrl_c(){
-  $ECHO -e "\n${yellow}[*]${end}${gray}Saliendo${end}"
-  $TPUT cnorm; $RM crmk.log 2>/dev/null; exit 0
+function ctrl_c()
+{
+  $ECHO -e "\n${yellow}[*]${end}${gray}Saliendo${end}";
+  $TPUT cnorm; $RM crmk.log 2>/dev/null; exit 0;
 }
 
 # Help panel
-function help_panel(){
-  $ECHO -e "${yellow}[*] ${end}${gray}USO:${end} ./crmk --rute <directory|file>"
-  $ECHO -e "\n\t${yellow}--path${end}\t\t-  ${gray}[directory | file | disk] path${end}"
-  $ECHO -e "\t${yellow}--rute${end}"
-  $ECHO -e "\t${yellow}-r${end}"
-  $ECHO -e "\n\t${yellow}--overwrites${end}\t-  ${gray}Overwrites N times instead of the default (10)${end}"
-  $ECHO -e "\t${yellow}--nwrites  ${end}"
-  $ECHO -e "\t${yellow}--n  ${end}"
-  $ECHO -e "\n\t${yellow}--pattern${end}\t-  ${gray}Scrub pattern default (dod)${end}"
-  $ECHO -ne "\t${yellow}-p${end}${gray} \t\t   nnsa   |    dod    |    bsi     | gutmann${end}"
+function help_panel()
+{
+  $ECHO -e "${yellow}[*] ${end}${gray}USO:${end} ./crmk --rute <directory|file|disk>";
+  $ECHO -e "\n\t${yellow}--path${end}\t\t-  ${gray}[directory | file | disk] path${end}";
+  $ECHO -e "\t${yellow}--rute${end}";
+  $ECHO -e "\t${yellow}-r${end}";
+  $ECHO -e "\n\t${yellow}--overwrites${end}\t-  ${gray}Overwrites N times instead of the default (10)${end}";
+  $ECHO -e "\t${yellow}--nwrites  ${end}";
+  $ECHO -e "\t${yellow}--n  ${end}";
+  $ECHO -e "\n\t${yellow}--pattern${end}\t-  ${gray}Scrub pattern default (dod)${end}";
+  $ECHO -ne "\t${yellow}-p${end}${gray} \t\t   nnsa   |    dod    |    bsi     | gutmann${end}";
   $ECHO -e "${gray}
            \t\t schneier | pfitzner7 | pfitzner33 | usarmy
            \t\t fillzero |  fillff   |   random   | random2
-           \t\t    old   | fastold   | custom=str ${end}"
-  $ECHO -e "\n\t${yellow}--log${end}\t\t-  ${gray}Create log file${end}"
-  $ECHO -e "\t${yellow}-v${end}"
-  $ECHO -e "\n\t${yellow}--verbose${end}\t-  ${gray}[ VERBOSE ]${end}"
-  $ECHO -e "\t${yellow}-v${end}"
-  $ECHO -e ''; exit 0
+           \t\t    old   | fastold   | custom=str ${end}";
+  $ECHO -e "\n\t${yellow}--log${end}\t\t-  ${gray}Create log file${end}";
+  $ECHO -e "\t${yellow}-l${end}";
+  $ECHO -e "\n\t${yellow}--verbose${end}\t-  ${gray}[ VERBOSE ]${end}";
+  $ECHO -e "\t${yellow}-v${end}";
+  $ECHO -e "\n\t${yellow}--force${end}\t\t-  ${gray}The program executes the indicated actions{end}";
+  $ECHO -e "\t${yellow}-f${end}${gray}\t\t   without asking the user${end}"
+  $ECHO -e ''; exit 0;
 }
 
-function read_msg(){
+function read_msg()
+{
   local OPT=""; case $1 in
      42)
-       until [[ $OPT =~ (y|n|Y|N) ]]; do
-         $ECHO -ne "${yellow}[*]${end}${gray} Desea eliminar de forma permenete ${end}${red}[ $2 ]${end} (y/n) "; read OPT
-       done; if [[ $OPT =~ (n|N) ]]; then return 1; fi; return 0
+      [[ -v ALL_YES ]] && return 0;
+      until [[ $OPT =~ (y|n|Y|N) ]]; do
+        $ECHO -ne "${yellow}[*]${end}${gray} Desea eliminar de forma permenete ${end}${red}[ $2 ]${end} (y/n) "; read OPT;
+      done; [[ $OPT =~ (n|N) ]] && return 1; return 0;
      ;;
-  esac
+  esac;
 }
 
-function msg_log(){
+function msg_log()
+{
   case $1 in
      22)
-       $ECHO -ne "${yellow}[*]${end}${gray} Listando archivos y directorios ${end}"
-       $ECHO -e "List files and directory" >> crmk.log
+       $ECHO -ne "${yellow}[*]${end}${gray} Listando archivos y directorios ${end}";
+       $ECHO -e "List files and directory" >> crmk.log;
      ;;
 
      24)
-       $ECHO -e "Delete [ $2 ]" >> crmk.log
+       $ECHO -e "Delete [ $2 ]" >> crmk.log;
      ;;
 
      26)
-       $ECHO -e "${red}:: El archivo tardara en eliminarse${end}"
-       $ECHO -e "El archivo tardara en eliminarse" >> crmk.log
+       $ECHO -e "${red}:: El archivo tardara en eliminarse${end}";
+       $ECHO -e "El archivo tardara en eliminarse" >> crmk.log;
      ;;
 
      42)
-       $ECHO -ne "${yellow}[*]${end}${gray} Desea eliminar de forma permenete${end} ${red}[ $2 ]${end}"
+       $ECHO -ne "${yellow}[*]${end}${gray} Desea eliminar de forma permenete${end} ${red}[ $2 ]${end}";
      ;;
-  esac
+  esac;
 }
 
 # Error message
-function error_log(){
+function error_log()
+{
   case $1 in
      00)
-       $ECHO -e "${red}:: Error path${end}"
-       $ECHO ":: Error path" >> crmk.log
+       $ECHO -e "${red}:: Error path${end}";
+       $ECHO ":: Error path" >> crmk.log; help_panel;
      ;;
 
      22)
-       $ECHO -e "${red}:: Error list files${end}"
-       $ECHO ":: Error list files" >> crmk.log
+       $ECHO -e "${red}:: Error list files${end}";
+       $ECHO ":: Error list files" >> crmk.log;
      ;;
 
      44)
-       $ECHO -e "${red}:: Error en el paramentro [--overwrites$|--owrites|-n]${end}"
-       $ECHO ":: Error en el paramentro [--overwrites$|--owrites|-n]]" >> crmk.log
+       $ECHO -e "${red}:: Error en el paramentro [--overwrites$|--owrites|-n]${end}";
+       $ECHO ":: Error en el paramentro [--overwrites$|--owrites|-n]]" >> crmk.log; help_panel;
      ;;
 
      46)
-       $ECHO -e "${red}:: Error en el paramentro [--pattern|-p]${end}"
-       $ECHO ":: Error en el paramentro [--pattern|-p]" >> crmk.log
+       $ECHO -e "${red}:: Error en el paramentro [--pattern|-p]${end}";
+       $ECHO ":: Error en el paramentro [--pattern|-p]" >> crmk.log; help_panel;
      ;;
 
      66)
-       $ECHO -e "${red}:: Error scrub${end}"
-       $ECHO ":: Error scrub" >> crmk.log
+       $ECHO -e "${red}:: Error scrub${end}";
+       $ECHO ":: Error scrub" >> crmk.log;
      ;;
 
      88)
-       $ECHO -e "${red}:: Error shred${end}"
-       $ECHO ":: Error shred" >> crmk.log
+       $ECHO -e "${red}:: Error shred${end}";
+       $ECHO ":: Error shred" >> crmk.log;
      ;;
-  esac
+  esac;
 }
 
-function search_list(){
-  local LIST=(${1}); local ITEM=${2}
+#function search_list(){
+#  local LIST=(${1}); local ITEM=${2}
+#
+#  for i in "${LIST[@]}"; do [ "${i}" == "${ITEM}" ] && return 0; done;
+#  return 1
+#}
 
-  for i in "${LIST[@]}"; do
-    if [ "${i}" == "${ITEM}" ]; then return 0; fi
-  done; return 1
+function search_list()
+{
+  local LIST=(${1}); local ITEM=${2};
+
+  [[ " ${LIST[*]} " == *" ${ITEM} "* ]] && return 0; return 1;
 }
 
-function defauld_value(){
-  if [ -z $N_OVER_WRITES ]; then N_OVER_WRITES=10; fi
-	if [[ ! $N_OVER_WRITES =~ ^[0-9]+$ ]]; then error_log 44; exit 1; fi
+function check_not_value_flash()
+{
+  local LIST=($@)
+  # Show HelpPanel
+  search_list "${LIST[*]}" '--help'    && help_panel;
+  search_list "${LIST[*]}" '-h'        && help_panel;
 
-  local PATTERN_LIST="nnsa dod bsi gutmann schneier pfitzner7 pfitzner33 usarmy fillzero fillff random random2 old fastold custom"
-  if [ -z $SCRUB_PATTERN ]; then SCRUB_PATTERN="dod"; fi
-  search_list "$PATTERN_LIST" "$SCRUB_PATTERN"; if [ ! $? -eq 0 ]; then error_log 46; exit 1; fi
+  # Turn on VerboseMode
+  search_list "${LIST[*]}" '--verbose' && declare -g -r VERBOSE=0;
+  search_list "${LIST[*]}" '-v'        && declare -g -r VERBOSE=0;
+
+  # Create LogFile
+  search_list "${LIST[*]}" '--log'     && declare -g -r LOG_FILE=0;
+  search_list "${LIST[*]}" '-l'        && declare -g -r LOG_FILE=0;
+
+  # Tur on AllYes
+  search_list "${LIST[*]}" '--force'   && declare -g -r ALL_YES=0;
+  search_list "${LIST[*]}" '-f'        && declare -g -r ALL_YES=0;
+
+  return 0;
 }
 
-# If path exist, return 0
-function check_rute(){ if [ ! -r "$1" ]; then return 1; fi; return 0; }
-
-function check_disk_rute(){
-  local RUTE=$1; $LSBLK | $GREP disk | $AWK '{print $1}' > .tmp.disk.partition
-  $LSBLK | $GREP part | $AWK '{print $1}' | $TR -d '└─' >> .tmp.disk.partition
-
-  while IFS="" read -r DISK_PARTITION; do
-    if [ "/dev/$DISK_PARTITION" == "$RUTE" ]; then return 2; fi
-  done <.tmp.disk.partition ;$RM -f .tmp.disk.partition &>/dev/null
-
-  return 3
-}
-
-function check_rute_type(){
-  # directory => return 0  # disk      => return 2
-  # file      => return 1  # partition => return 2
-  # not valid => return 3
-
-  local RT_ERROR=3; local RUTE="$1"
-
-  if [ -d "$RUTE" ]; then RT_ERROR=0; fi
-  if [ $RT_ERROR -eq 3 ]; then RT_ERROR=$(check_disk_rute $RUTE; echo $?); fi
-  if [[ $RT_ERROR -eq 3 && $(test -f $RUTE; echo $?) -eq 0 ]]; then RT_ERROR=1; fi
-
-  return $RT_ERROR;
-}
-
-function scrub_shred(){
-   local LINE=$1
-   if [[ ! -v VERBOSE ]]; then
-      $SCRUB -p $SCRUB_PATTERN "$LINE" &>/dev/null; if [ ! $? ]; then error_log 66; fi
-      $SHRED -zun $N_OVER_WRITES -v "$LINE" &>/dev/null; if [ ! $? ]; then error_log 88; fi
-      return 0
-   fi; $SCRUB -p dod "$LINE"; if [ ! $? ]; then error_log 66; fi
-   $SHRED -zun $N_OVER_WRITES -v "$LINE"; if [ ! $? ]; then error_log 88; fi
-}
-
-function security_delete(){
-  while IFS= read -r LINE; do
-    $ECHO -e "${yellow}[*]${end}${gray} Eliminado ${end}${blue}$LINE${end}"; msg_log 24 "$LINE"
-    SIZE=$(du -s "$LINE" | awk '{print $1}'); if [ $SIZE -gt 100000 ]; then msg_log 26; fi
-    scrub_shred $LINE
-  done < .tmp_crmk; $RM -f .tmp_crmk 2>/dev/null
-}
-
-function wipe_disk_partition(){
-  $ECHO -e "${red}En desarrollo (uso dd)${end}"
-}
-
-function main(){
-  local RUTE_TYPE=$(check_rute_type $INPUT_RUTE; $ECHO $?)
-
-  if [ $RUTE_TYPE -eq 3 ]; then error_log 00; fi
-
-  if [ $RUTE_TYPE -eq 2 ]; then
-    read_msg 42 $INPUT_RUTE; if [ $? -eq 1 ]; then $ECHO -e "${red}NOT!! wipe disk${end}"; return 1; fi
-    wipe_disk_partition $INPUT_RUTE; return 0
-  fi
-
-  if [ $RUTE_TYPE -eq 1 ]; then $ECHO "$INPUT_RUTE" > .tmp_crmk; fi
-
-  if [ $RUTE_TYPE -eq 0 ]; then
-    msg_log 22; $FIND $INPUT_RUTE -type f -exec $LS -a {} \; > .tmp_crmk
-    if [ ! $? ]; then $ECHO -e "${red}(x)${end}"; error_log 22; exit 1; fi;
-    $ECHO -e "${green}(v)${end}"
-  fi; security_delete; $RM -rf $INPUT_RUTE &>/dev/null
-}
-
-if [ $UID -eq 0 ]; then
-  declare -A ARRAY=([-h]="-h" [--help]="--help" [--h]="--h" [-help]="-help")
-  for i in "${ARRAY[@]}"; do
-    if [ $1 ]; then env test ${ARRAY[$1]+_} 2>/dev/null && help_panel; fi
-  done
-
-  for i in "$@"; do if [[ "$i" == "--verbose" || "$i" == "-v" ]]; then declare VERBOSE=0; fi; done
-  for i in "$@"; do if [[ "$i" == "--log" || "$i" == "-l" ]]; then declare LOG_FILE=0; fi; done
-
-  declare -i INDEX=0
-  declare -A ARGUMENTS=(); declare -A VARIABLES=()
+function check_flash()
+{
+  local -i INDEX=1; local -A CHECK=()
+  local -A ARGUMENTS=(); local -A VARIABLES=()
 
   VARIABLES["--rute"]="INPUT_RUTE"
   VARIABLES["--path"]="INPUT_RUTE"
@@ -232,24 +184,125 @@ if [ $UID -eq 0 ]; then
 
   for i in "$@"; do
     INDEX=INDEX+1; ARGUMENTS[$INDEX]=$i
-    PREV_INDEX="$(expr $INDEX - 1)";
+    local PREV_INDEX=$((INDEX-1));
 
-    if [[ $i == *"="* ]]; then ARGUMENT_LABEL=${i%=*}
-    else ARGUMENT_LABEL=${ARGUMENTS[$PREV_INDEX]}; fi
+    [[ $i == *"="* ]] && ARGUMENT_LABEL=${i%=*} || {
+      ARGUMENT_LABEL=${ARGUMENTS[$PREV_INDEX]}
+    }
 
-    if ! [[ -n $ARGUMENT_LABEL ]]; then continue; fi
-    if ! [[ -n ${VARIABLES[$ARGUMENT_LABEL]} ]]; then continue; fi
+    [[ -n $ARGUMENT_LABEL ]] || continue
+    [[ -n ${VARIABLES[$ARGUMENT_LABEL]} ]] || continue
 
-    if [[ $i == *"="* ]]; then
-      declare ${VARIABLES[$ARGUMENT_LABEL]}=${i#$ARGUMENT_LABEL=};
+    search_list "${CHECK[*]}" "${VARIABLES[$ARGUMENT_LABEL]}" && {
+      #error_log 00 'Error: Formato incorrecto'
+      return 1
+    }; CHECK+=${VARIABLES[$ARGUMENT_LABEL]}
+
+    [[ $i == *"="* ]] && {
+      declare -g ${VARIABLES[$ARGUMENT_LABEL]}=${i#$ARGUMENT_LABEL=};
       continue
-    fi; declare ${VARIABLES[$ARGUMENT_LABEL]}=${ARGUMENTS[$INDEX]}
+    }; declare -g ${VARIABLES[$ARGUMENT_LABEL]}=${ARGUMENTS[$INDEX]}
+  done; return 0
+}
 
-  done; defauld_value
+function defauld_value()
+{
+  [ -z $N_OVER_WRITES ] && N_OVER_WRITES=10;
+  [[ ! $N_OVER_WRITES =~ ^[0-9]+$ ]] && { error_log 44; exit 1; }
+
+  local PATTERN_LIST="nnsa dod bsi gutmann schneier pfitzner7 pfitzner33 usarmy fillzero fillff random random2 old fastold custom";
+  [ -z $SCRUB_PATTERN ] && SCRUB_PATTERN="dod";
+  search_list "$PATTERN_LIST" "$SCRUB_PATTERN" || { error_log 46; exit 1; }
+}
+
+# If path exist, return 0
+function check_rute(){ [ -r "$1" ] || return 1; return 0; }
+
+function check_disk_rute()
+{
+  local RUTE=$1; $LSBLK | $GREP disk | $AWK '{print $1}' > .tmp.disk.partition;
+  $LSBLK | $GREP part | $AWK '{print $1}' | $TR -d '└─' >> .tmp.disk.partition;
+
+  while IFS="" read -r DISK_PARTITION; do
+    [ "/dev/$DISK_PARTITION" == "$RUTE" ] && return 2;
+  done <.tmp.disk.partition ;$RM -f .tmp.disk.partition &>/dev/null;
+
+  return 3;
+}
+
+function check_rute_type()
+{
+  # directory => return 0  # disk      => return 2
+  # file      => return 1  # partition => return 2
+  # not valid => return 3
+
+  local RUTE="$1"; local RT_ERROR=3;
+
+  [ -d "$RUTE" ] && RT_ERROR=0;
+  [ $RT_ERROR -eq 3 ] && RT_ERROR=$(check_disk_rute $RUTE; echo $?);
+  [ $RT_ERROR -eq 3 ] && { test -f $RUTE && RT_ERROR=1; }
+
+  return $RT_ERROR;
+}
+
+function scrub_shred()
+{
+  local LINE=$1;
+  [[ -v VERBOSE ]] || {
+    $SCRUB -p $SCRUB_PATTERN "$LINE" &>/dev/null || error_log 66;
+    $SHRED -zun $N_OVER_WRITES -v "$LINE" &>/dev/null || error_log 88;
+    return 0;
+  }; $SCRUB -p dod "$LINE" || error_log 66;
+  $SHRED -zun $N_OVER_WRITES -v "$LINE" || error_log 88;
+}
+
+function security_delete()
+{
+  while IFS= read -r LINE; do
+    $ECHO -e "${yellow}[*]${end}${gray} Eliminado ${end}${blue}$LINE${end}"; msg_log 24 "$LINE";
+    SIZE=$(du -s "$LINE" | awk '{print $1}'); [ $SIZE -gt 100000 ] && msg_log 26;
+    scrub_shred "$LINE";
+  done < .tmp_crmk; $RM -f .tmp_crmk 2>/dev/null;
+}
+
+function wipe_disk_partition(){ $ECHO -e "${red}En desarrollo (uso dd)${end}"; }
+
+function main()
+{
+  local RUTE_TYPE=$(check_rute_type $INPUT_RUTE; $ECHO $?);
+
+  [ $RUTE_TYPE -eq 3 ] && error_log 00;
+
+  [ $RUTE_TYPE -eq 2 ] && {
+    read_msg 42 $INPUT_RUTE || {
+      $ECHO -e "${red}NOT!! wipe disk${end}"; exit 0;
+    }; wipe_disk_partition $INPUT_RUTE; return 0;
+  }
+
+  [ $RUTE_TYPE -eq 1 ] && {
+    read_msg 42 $INPUT_RUTE || {
+      $ECHO -e "${red}NOT!! delete ${INPUT_RUTE}${end}"; exit 0;
+    }; $ECHO "$INPUT_RUTE" > .tmp_crmk;
+  }
+
+  [ $RUTE_TYPE -eq 0 ] && {
+    read_msg 42 $INPUT_RUTE || {
+      $ECHO -e "${red}NOT!! delete ${INPUT_RUTE}${end}"; exit 0;
+    };
+    msg_log 22; $FIND $INPUT_RUTE -type f -exec $LS -a {} \; > .tmp_crmk || {
+      $ECHO -e "${red}(x)${end}"; error_log 22; exit 1;
+    }; $ECHO -e "${green}(v)${end}";
+  }; security_delete; $RM -rf $INPUT_RUTE &>/dev/null;
+}
+
+[ $UID -eq 0 ] && {
+  check_not_value_flash $@ || exit 1;
+  check_flash $@ && defauld_value || exit 1;
 
   # If input rute exit, exec main function
-  if [ $(check_rute "$INPUT_RUTE" &>/dev/null; echo $?) -ne 0 ]; then error_log 00; else main; fi
-  if [ ! -v LOG_FILE ]; then $RM crmk.log 2>/dev/null; fi; exit 0
-else
-  $ECHO -e "${red}Ejecute el script como root${end}"
-fi
+  check_rute "$INPUT_RUTE" &>/dev/null || {
+    check_disk_rute "$INPUT_RUTE" || error_log 00;
+  }; main;
+
+  [ -v LOG_FILE ] || $RM crmk.log 2>/dev/null; exit 0;
+} || { $ECHO -e "${red}Ejecute el script como root${end}"; exit 1; }
